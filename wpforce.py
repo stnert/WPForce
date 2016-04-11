@@ -26,7 +26,6 @@ def printout(text, colour=WHITE):
                 sys.stdout.write(seq)
         else:
                 sys.stdout.write(text)
-
 def slice_list(input, size):
     input_size = len(input)
     slice_size = input_size / size
@@ -67,8 +66,6 @@ def BuildThreads(list_array,url):
         t.start()
 def PrintBanner():
     banner = """\
-
-
        ,-~~-.___.       __        __ ____   _____
       / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
      (  )        0       \ \ /\ / / | |_) || |_  / _ \ | '__|/ __|/ _ \.
@@ -120,10 +117,8 @@ def PasswordAttempt(user,password,url):
         printout(adminAlert, RED)
         print "\n--------------------------"
         adminAlert = ""
-
     except:
         pass
-
 #-----------------------------------------------------------------------------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
@@ -157,5 +152,3 @@ while ((len(correct_pairs) <= totalusers) and  (len(passlist) > total)):
 print "\nAll correct pairs:"
 printout(str(correct_pairs), GREEN)
 print ""
-
-
