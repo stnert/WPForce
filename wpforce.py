@@ -5,6 +5,8 @@ import urllib2
 import argparse
 import threading
 __author__ = 'Esteban Rodriguez (n00py)'
+
+
 def has_colours(stream):
     if not hasattr(stream, "isatty"):
         return False
@@ -18,12 +20,16 @@ def has_colours(stream):
         return False
 has_colours = has_colours(sys.stdout)
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+
+
 def printout(text, colour=WHITE):
         if has_colours:
                 seq = "\x1b[1;%dm" % (30+colour) + text + "\x1b[0m"
                 sys.stdout.write(seq)
         else:
                 sys.stdout.write(text)
+
+
 def slice_list(input, size):
     input_size = len(input)
     slice_size = input_size / size
@@ -38,6 +44,8 @@ def slice_list(input, size):
             result[i].append(iterator.next())
             remain -= 1
     return result
+
+
 def worker(wordlist,thread_no,url):
     global total
     for n in wordlist:
@@ -49,8 +57,10 @@ def worker(wordlist,thread_no,url):
             if user not in correct_pairs:
                 PasswordAttempt(user,password,url,thread_no)
         total += 1
+
+
 def BuildThreads(list_array,url):
-    if (args.debug == True):
+    if args.debug == True:
         print "Here is the content of the wordlists for each thread"
         for i in range(len(list_array)):
             print "Thread " + str(i)
@@ -62,6 +72,8 @@ def BuildThreads(list_array,url):
         t.daemon = True
         threads.append(t)
         t.start()
+
+
 def PrintBanner():
     banner = """\
        ,-~~-.___.       __        __ ____   _____
@@ -77,6 +89,8 @@ def PrintBanner():
     print ("Username List: %s" % args.input) + " (" + str(len(userlist)) + ")"
     print ("Password List: %s" % args.wordlist) + " (" + str(len(passlist)) + ")"
     print ("URL: %s" % args.url)
+
+
 def TestSite(url):
     print "Trying: " + url
     try:
@@ -95,7 +109,10 @@ def TestSite(url):
     except socket.timeout as e:
         print type(e)
         print "The socket timed out, try it again.  (Site may down)"
-def PasswordAttempt(user,password,url,thread_no):
+        sys.exit()
+
+
+def PasswordAttempt(user, password, url, thread_no):
     if args.verbose is True or args.debug is True:
         if args.debug is True:
             thready = "[Thread " + str(thread_no) + "]"
@@ -135,7 +152,7 @@ def PasswordAttempt(user,password,url,thread_no):
             printout(str(e), YELLOW)
             print " - Try reducing Thread count "
             if args.verbose is True or args.debug is True:
-                print user + ":" + password +" was skipped"
+                print user + ":" + password + " was skipped"
     except socket.timeout as e:
         printout(str(e), YELLOW)
         print " - Try reducing Thread count "
@@ -157,7 +174,7 @@ userlist = u.read().split('\n')
 totalusers = len(userlist)
 f = open(args.wordlist, 'r')
 passlist = f.read().split('\n')
-correct_pairs ={}
+correct_pairs = {}
 PrintBanner()
 TestSite(url)
 total = 0
@@ -171,4 +188,3 @@ while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
 print "\nAll correct pairs:"
 printout(str(correct_pairs), GREEN)
 print ""
-
