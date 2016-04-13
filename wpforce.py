@@ -158,6 +158,11 @@ def PasswordAttempt(user, password, url, thread_no):
         print " - Try reducing Thread count "
         if args.verbose is True or args.debug is True:
             print user + ":" + password + " was skipped"
+    except socket.error as e:
+        printout(str(e), YELLOW)
+        print " - Got an RST, Probably tripped the firewall"
+        total = len(passlist)
+        sys.exit()
 
 parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
 parser.add_argument('-i','--input', help='Input file name',required=True)
