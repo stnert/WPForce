@@ -143,7 +143,7 @@ def PasswordAttempt(user, password, url, thread_no):
         except:
             pass
     except urllib2.URLError, e:
-        if e.code == 404 or 403:
+        if e.code == 404 or e.code == 403:
             global total
             printout(str(e), YELLOW)
             print " - WAF or security plugin likely in use"
