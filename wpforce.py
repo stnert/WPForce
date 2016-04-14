@@ -92,6 +92,7 @@ def PrintBanner():
 
 
 def TestSite(url):
+    protocheck()
     print "Trying: " + url
     try:
         urllib2.urlopen(url, timeout=3)
@@ -188,7 +189,6 @@ passlist = f.read().split('\n')
 correct_pairs = {}
 total = 0
 PrintBanner()
-protocheck()
 TestSite(url)
 
 list_array = slice_list(passlist, args.threads)
