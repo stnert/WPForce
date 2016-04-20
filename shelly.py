@@ -61,6 +61,7 @@ def uploadbackdoor(host,username,password,type):
     print "Upload Directory: " + uploaddir
     return uploaddir
 
+
 def testlinux():
 
     params = [('cmd', 'uname -a')]
