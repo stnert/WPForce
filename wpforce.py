@@ -5,7 +5,9 @@ import urllib2
 import argparse
 import threading
 __author__ = 'Esteban Rodriguez (n00py)'
-
+# These variables must be shared by all threads dynamically
+correct_pairs = {}
+total = 0
 
 def has_colours(stream):
     if not hasattr(stream, "isatty"):
@@ -61,7 +63,7 @@ def worker(wordlist,thread_no,url,userlist,verbose,debug,agent):
 
 
 def BuildThreads(list_array,url,debug,userlist,verbose,agent):
-    if debug == True:
+    if debug:
         print "Here is the content of the wordlists for each thread"
         for i in range(len(list_array)):
             print "Thread " + str(i)
@@ -202,7 +204,5 @@ def main():
     print ""
 
 if __name__ == "__main__":
-    # These variables must be shared by all threads dynamically
-    correct_pairs = {}
-    total = 0
+
     main()
