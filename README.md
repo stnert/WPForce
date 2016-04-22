@@ -2,7 +2,7 @@
 ![alt tag](https://github.com/n00py/WPForce/blob/master/turtledoge.jpg)
 
 ## ABOUT:
-WP Force is a suite of Wordpress Attack tools.  Cuurrently this contains 2 modules - WPforce, which brute forces logins via the API, and Yertle, which uploads shells once admin credentials have been found.
+WP Force is a suite of Wordpress Attack tools.  Currently this contains 2 modules - WPForce, which brute forces logins via the API, and Yertle, which uploads shells once admin credentials have been found.
 ## FEATURES:
 * Brute Force via API, not login form bypassing some forms of protection
 * Can automatically upload an interactive shell
