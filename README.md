@@ -57,7 +57,7 @@ All correct pairs:
                         script.
 
 
-python yertle.py -u "[username]" -p "[password]" -t "http://www.snarlsburg.com" -i
+python yertle.py -u "[username]" -p "[password]" -t "http://www.[website].com" -i
      _..---.--.    __   __        _   _
    .'\ __|/O.__)   \ \ / /__ _ __| |_| | ___
   /__.' _/ .-'_\    \ V / _ \ '__| __| |/ _ \.
