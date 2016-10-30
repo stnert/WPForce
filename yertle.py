@@ -3,7 +3,7 @@ import requests
 import argparse
 from random import choice
 from string import ascii_lowercase
-__author__ = 'Esteban Rodriguez (n00py)'
+__author__ = '(n00py)'
 
 
 def uploadbackdoor(host,username,password,type,verbose):
