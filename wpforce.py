@@ -4,7 +4,7 @@ import socket
 import urllib2
 import argparse
 import threading
-__author__ = 'Esteban Rodriguez (n00py)'
+__author__ = 'n00py)'
 # These variables must be shared by all threads dynamically
 correct_pairs = {}
 total = 0
