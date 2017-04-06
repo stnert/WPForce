@@ -10,7 +10,7 @@ https://www.n00py.io/2017/03/squeezing-the-juice-out-of-a-compromised-wordpress-
 * Can automatically upload an interactive shell
 * Can be used to spawn a full featured reverse shell
 * Dumps WordPress password hashes
-* Can backdoor authentication fuction for plaintext password collection
+* Can backdoor authentication function for plaintext password collection
 * Inject BeEF hook into all pages
 * Pivot to meterpreter if needed
 
