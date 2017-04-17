@@ -108,6 +108,7 @@ Command                   Description
 -------                   -----------
 ?                         Help menu
 beef                      Injects a BeEF hook into website
+dbcreds                   Prints the database credentials
 exit                      Terminate the session
 hashdump                  Dumps all WordPress password hashes
 help                      Help menu
