@@ -1,3 +1,4 @@
+![Supported Python versions](https://img.shields.io/badge/python-2.7-blue.svg)
 # WPForce - Wordpress Attack Suite
 
 ## ABOUT:
