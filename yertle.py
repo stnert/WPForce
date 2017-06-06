@@ -351,7 +351,7 @@ def printbanner():
   (_/ _)__(_ \_)\_   |_|\___|_|   \__|_|\___|
    (_..)--(.._)'--'         ~n00py~
       Post-exploitation Module for Wordpress
-
+                     v.1.0.0
     """
     print banner
 
