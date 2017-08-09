@@ -6,6 +6,15 @@ WPForce is a suite of Wordpress Attack tools.  Currently this contains 2 scripts
 
 For more information, visit the blog post here: 
 https://www.n00py.io/2017/03/squeezing-the-juice-out-of-a-compromised-wordpress-server/
+
+Blogs in other languages: 
+Chinese -    www.mottoin.com/100381.html 
+Portuguese - http://www.100security.com.br/wpforce/ 
+Spanish -    http://www.1024megas.com/2017/05/wpforce-fuerzabruta-postexplotacion.html 
+Russian -    https://hackware.ru/?p=2547
+French -     https://securityhack3r.info/wpforce-brute-force-attack-tool-wordpress/ 
+
+
 ## FEATURES:
 * Brute Force via API, not login form bypassing some forms of protection
 * Can automatically upload an interactive shell
