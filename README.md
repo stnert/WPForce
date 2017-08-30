@@ -131,6 +131,7 @@ help                      Help menu
 keylogger                 Patches WordPress core to log plaintext credentials
 keylog                    Displays keylog file
 meterpreter               Executes a PHP meterpreter stager to connect to metasploit
+persist                   Creates an admin account that will re-add itself
 quit                      Terminate the session
 shell                     Sends a TCP reverse shell to a netcat listener
 stealth                   Hides Yertle from the plugins page
