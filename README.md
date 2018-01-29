@@ -19,6 +19,7 @@ Russian -    https://hackware.ru/?p=2547
 
 French -     https://securityhack3r.info/wpforce-brute-force-attack-tool-wordpress/ 
 
+Turkish -    http://turkhackteam.org/web-server-guvenligi/1655005-wordpress-site-sizma-testi-part-1-a.html
 
 
 ## FEATURES:
