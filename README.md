@@ -14,6 +14,7 @@ Chinese -    www.mottoin.com/100381.html
 Portuguese - http://www.100security.com.br/wpforce/ 
 
 Spanish -    http://www.1024megas.com/2017/05/wpforce-fuerzabruta-postexplotacion.html 
+             https://esgeeks.com/como-hackear-sitio-wordpress-con-wpforce/
 
 Russian -    https://hackware.ru/?p=2547
 
