@@ -183,9 +183,9 @@ def protocheck(url):
 
 def main():
     parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
-    users = parser.add_argument_group(required=True)
+    users = parser.add_argument_group()
     users.add_argument('-i','--input', help='Input file name')
-    users.add_argument('-si' '--singleinput', help='Input list of users', action='store', dest='singleinput')
+    users.add_argument('-si' '--singleinput', help='Input list of users', action='store', dest='singleinput', nargs='+')
     parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
     parser.add_argument('-u','--url',help='URL of target', required=True)
     parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true')
@@ -197,9 +197,15 @@ def main():
     url = args.url
     url = urljoin(url, '/xmlrpc.php')
 
+    if not args.input and not args.singleinput:
+        parser.print_help()
+        print "wpforce.py: error: argument -si/-i (users list or userfile) is required"
+        sys.exit(-1)
+
     if args.input:
         userlist = open(args.input, 'r').read().split('\n')
     else:
+        printout("Remember to pass usernames in space delimited form!\n", YELLOW)
         userlist = args.singleinput
 
     totalusers = len(userlist)
@@ -216,10 +222,10 @@ def main():
             sys.stdout.flush()
             percent = "%.0f%%" % (100 * (total)/len(passlist))
             print " " + percent + " Percent Complete\r",
+    
     print "\nAll correct pairs:"
     printout(str(correct_pairs), GREEN)
     print ""
 
 if __name__ == "__main__":
-
     main()
