@@ -1,9 +1,12 @@
+import re
 import sys
 import time
 import socket
 import urllib2
 import argparse
 import threading
+from urlparse import urljoin
+
 __author__ = 'n00py'
 # These variables must be shared by all threads dynamically
 correct_pairs = {}
@@ -119,6 +122,7 @@ def TestSite(url):
 
 
 def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent):
+    global passlist
     if verbose is True or debug is True:
         if debug is True:
             thready = "[Thread " + str(thread_no) + "]"
@@ -172,12 +176,16 @@ def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent):
 
 
 def protocheck(url):
-    if "http" not in url:
-        printout("Please include the protocol in the URL\n", YELLOW)
+    url_pattern = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
+    if not url_pattern.match(url):
+        printout("Incorrect URL. Please include the protocol in the URL.\n", YELLOW)
         sys.exit()
+
 def main():
     parser = argparse.ArgumentParser(description='This is a tool to brute force Worpress using the Wordpress API')
-    parser.add_argument('-i','--input', help='Input file name',required=True)
+    users = parser.add_mutually_exclusive_group(required=True)
+    users.add_argument('-i','--input', help='Input file name')
+    users.add_argument('-si' '--singleinput', help='Input list of users', action='store', dest='singleinput', nargs='+')
     parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
     parser.add_argument('-u','--url',help='URL of target', required=True)
     parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true')
@@ -185,15 +193,20 @@ def main():
     parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
     parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
     args = parser.parse_args()
+    
     url = args.url
-    if url.endswith('/'):
-        url = url[:-1]
-    url += '/xmlrpc.php'
-    u = open(args.input, 'r')
-    userlist = u.read().split('\n')
+    url = urljoin(url, '/xmlrpc.php')
+
+    if args.input:
+        userlist = open(args.input, 'r').read().split('\n')
+    else:
+        printout("Remember to pass usernames in space delimited form!\n", YELLOW)
+        userlist = args.singleinput
+
     totalusers = len(userlist)
-    f = open(args.wordlist, 'r')
-    passlist = f.read().split('\n')
+
+    passlist = open(args.wordlist, 'r').read().split('\n')
+    
     PrintBanner(args.input,args.wordlist,args.url,userlist,passlist)
     TestSite(url)
 
@@ -204,10 +217,10 @@ def main():
             sys.stdout.flush()
             percent = "%.0f%%" % (100 * (total)/len(passlist))
             print " " + percent + " Percent Complete\r",
+    
     print "\nAll correct pairs:"
     printout(str(correct_pairs), GREEN)
     print ""
 
 if __name__ == "__main__":
-
     main()
